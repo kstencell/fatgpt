@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "FatGPT",
+  "version": "0.0.1",
+  "description": "Prototype that will adjust ChatGPT conversation width.",
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
