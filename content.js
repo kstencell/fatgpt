@@ -1,3 +1,8 @@
+// Multi-browser support
+if (typeof browser === "undefined") {
+  var browser = chrome;
+}
+
 // ---- constants ----
 const STYLE_ID = "fatgpt-style";
 const DEFAULT_PX = 768; // used when enabling from native via shortcuts

@@ -1,3 +1,8 @@
+// Multi-browser support
+if (typeof browser === "undefined") {
+  var browser = chrome;
+}
+
 // ---- DOM refs ----
 const widthPx = document.getElementById("widthPx");
 const slider = document.getElementById("slider");
