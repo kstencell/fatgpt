@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "build:chrome": "cpy icons/**/* dist/chrome/icons/ && cpy *.js *.html dist/chrome/ && cpy manifests/manifest.chrome.json dist/chrome/manifest.json",
+    "build:firefox": "cpy icons/**/* dist/firefox/icons/ && cpy *.js *.html dist/firefox/ && cpy manifests/manifest.firefox.json dist/firefox/manifest.json",
+    "zip:chrome": "cd dist/chrome && zip -r ../fatgpt-chrome.zip .",
+    "zip:firefox": "cd dist/firefox && zip -r ../fatgpt-firefox.zip ."
+  },
+  "devDependencies": {
+    "cpy-cli": "^5.0.0"
+  }
+}

@@ -239,6 +239,19 @@ function watchForDomChurn() {
 refreshEffectiveCap();
 window.addEventListener("resize", refreshEffectiveCap);
 
+// ===== de-dupe + unified invoker =====
+let _lastInvokeAt = 0;
+function invoke(cmd) {
+  const now = performance.now();
+  if (now - _lastInvokeAt < 60) return; // prevent double-fire (commands + keydown)
+  _lastInvokeAt = now;
+
+  const base = currentWidth == null ? DEFAULT_PX : currentWidth;
+  if (cmd === "wider") setAndSave(base + STEP_PX);
+  else if (cmd === "narrower") setAndSave(base - STEP_PX);
+  else if (cmd === "native") setAndSave(null);
+}
+
 // =====================
 // shortcuts (in-page)
 // =====================
@@ -248,33 +261,48 @@ window.addEventListener("keydown", (e) => {
 
   if (sameBinding(e, bindings.wider)) {
     e.preventDefault();
-    const base = currentWidth == null ? DEFAULT_PX : currentWidth;
-    setAndSave(base + STEP_PX);
+    invoke("wider");
   } else if (sameBinding(e, bindings.narrower)) {
     e.preventDefault();
-    const base = currentWidth == null ? DEFAULT_PX : currentWidth;
-    setAndSave(base - STEP_PX);
+    invoke("narrower");
   } else if (sameBinding(e, bindings.native)) {
     e.preventDefault();
-    setAndSave(null);
+    invoke("native");
   }
+});
+
+// ===== accept browser-managed commands from bg.js =====
+browser.runtime.onMessage.addListener((msg) => {
+  if (!msg || msg.type !== "fatgpt:cmd") return;
+  invoke(msg.cmd); // "wider" | "narrower" | "native"
 });
 
 // =====================
 // popup messaging
 // =====================
 
-// Reply to popup with current cap + mode (used to set slider max & labels)
-browser.runtime.onMessage.addListener((msg) => {
-  if (msg && msg.type === "fatgpt:get-cap") {
+// Accept browser-managed commands and answer popup queries (Chrome/Firefox safe)
+browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || !msg.type) return;
+
+  if (msg.type === "fatgpt:cmd") {
+    // "wider" | "narrower" | "native"
+    invoke(msg.cmd);
+    // No response needed
+    return;
+  }
+
+  if (msg.type === "fatgpt:get-cap") {
     const { outerCapPx, innerCapPx, functionalCapPx } = computeCaps();
-    return Promise.resolve({
+    // Use callback style so it works with chrome.* and browser.* alike
+    sendResponse({
       capPx: functionalCapPx, // popup slider max
       innerCapPx,
       outerCapPx,
       native: currentWidth == null,
       currentWidth,
     });
+    return true; // keep channel open if the engine treats this as async
   }
 });
 
