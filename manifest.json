@@ -1,13 +1,11 @@
 {
   "manifest_version": 3,
   "name": "FatGPT",
-  "version": "0.0.3",
-  "description": "Prototype that will adjust ChatGPT conversation width.",
+  "version": "0.0.4",
+  "description": "Adjust ChatGPT conversation width.",
   "permissions": ["storage"],
-  "action": {
-    "default_popup": "popup.html",
-    "default_title": "FatGPT"
-  },
+  "host_permissions": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+  "action": { "default_popup": "popup.html", "default_title": "FatGPT" },
   "content_scripts": [
     {
       "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
