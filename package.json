@@ -1,11 +1,14 @@
 {
   "scripts": {
-    "build:chrome": "cpy icons/**/* dist/chrome/icons/ && cpy *.js *.html dist/chrome/ && cpy manifests/manifest.chrome.json dist/chrome/manifest.json",
-    "build:firefox": "cpy icons/**/* dist/firefox/icons/ && cpy *.js *.html dist/firefox/ && cpy manifests/manifest.firefox.json dist/firefox/manifest.json",
-    "zip:chrome": "cd dist/chrome && zip -r ../fatgpt-chrome.zip .",
-    "zip:firefox": "cd dist/firefox && zip -r ../fatgpt-firefox.zip ."
+    "clean": "shx rm -rf dist",
+    "build": "npm run clean && npm run build:chrome && npm run build:firefox",
+    "build:chrome": "cpy icons/**/* dist/chrome/icons --flat && cpy *.js *.html dist/chrome --flat && cpy manifests/manifest.chrome.json dist/chrome --flat --rename manifest.json",
+    "build:firefox": "cpy icons/**/* dist/firefox/icons --flat && cpy *.js *.html dist/firefox --flat && cpy manifests/manifest.firefox.json dist/firefox --flat --rename manifest.json",
+    "zip:chrome": "cd dist/chrome && shx rm -f ../fatgpt-chrome.zip && zip -r ../fatgpt-chrome.zip .",
+    "zip:firefox": "cd dist/firefox && shx rm -f ../fatgpt-firefox.zip && zip -r ../fatgpt-firefox.zip ."
   },
   "devDependencies": {
-    "cpy-cli": "^5.0.0"
+    "cpy-cli": "^5.0.0",
+    "shx": "^0.3.4"
   }
 }

@@ -1,0 +1,59 @@
+{
+  "manifest_version": 2,
+  "name": "FatGPT — Chat Width Control",
+  "version": "0.1.0",
+  "description": "Widen or narrow the ChatGPT conversation column with a slider or keyboard shortcuts.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*"
+  ],
+
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "FatGPT"
+  },
+
+  "background": { "scripts": ["bg.js"] },
+
+  "commands": {
+    "fatgpt-wider": {
+      "suggested_key": {
+        "default": "Alt+BracketRight",
+        "mac": "Alt+BracketRight"
+      },
+      "description": "Widen width"
+    },
+    "fatgpt-narrower": {
+      "suggested_key": {
+        "default": "Alt+BracketLeft",
+        "mac": "Alt+BracketLeft"
+      },
+      "description": "Narrow width"
+    },
+    "fatgpt-native": {
+      "suggested_key": { "default": "Alt+0", "mac": "Alt+0" },
+      "description": "Reset to native"
+    }
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+
+  "browser_specific_settings": {
+    "gecko": { "strict_min_version": "91.0" }
+  }
+}
