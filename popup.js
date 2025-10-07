@@ -311,6 +311,65 @@ resetBtn.addEventListener("click", async () => {
   setMode(true);
 });
 
+function isChatgptUrl(url) {
+  return /^https:\/\/(chatgpt\.com|chat\.openai\.com)\//.test(url || "");
+}
+function setDisabledUI(disabled) {
+  const controls = document.getElementById("controls");
+  const msg = document.getElementById("notChatgpt");
+  controls.style.display = disabled ? "none" : "";
+  msg.style.display = disabled ? "" : "none";
+}
+
+// modify queryActiveTabCap() to gate on URL
+async function queryActiveTabCap() {
+  try {
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (!tab?.id || !isChatgptUrl(tab.url)) {
+      // Not a ChatGPT tab: show disabled message and bail.
+      setDisabledUI(true);
+      capEl.textContent = "—";
+      modeEl.textContent = "—";
+      return null;
+    }
+
+    setDisabledUI(false);
+    const resp = await browser.tabs.sendMessage(tab.id, {
+      type: "fatgpt:get-cap",
+    });
+    if (resp?.capPx) {
+      capPx = Math.max(MIN_PX, Math.floor(resp.capPx));
+      slider.max = String(capPx);
+      capEl.textContent = String(capPx);
+      setMode(resp.native);
+      if (resp.native) setBoth(Math.min(DEFAULT_PX, capPx));
+      else if (resp.currentWidth != null)
+        setBoth(Math.min(resp.currentWidth, capPx));
+    }
+    return resp;
+  } catch {
+    // No content script / different site: disable UI
+    setDisabledUI(true);
+    capEl.textContent = "—";
+    modeEl.textContent = "—";
+    return null;
+  }
+}
+
+document
+  .getElementById("reset-shortcuts")
+  .addEventListener("click", async () => {
+    await browser.storage.local.set({ fatgptBindings: {} });
+    bindings = { ...DEFAULT_BINDINGS }; // optional local sync
+    // refresh UI labels
+    document.getElementById("bind-wider").textContent = "Alt + .";
+    document.getElementById("bind-narrower").textContent = "Alt + ,";
+    document.getElementById("bind-native").textContent = "Alt + 0";
+  });
+
 // =========================
 // Boot
 // =========================
