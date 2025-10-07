@@ -1,3 +1,39 @@
+// ---- PERF DEBUG ----
+const FG_PERF = {
+  ensureStyleCalls: 0,
+  computeCapsCalls: 0,
+  storageWrites: 0,
+  storageOnChanged: 0,
+  messagesCmd: 0,
+  messagesGetCap: 0,
+};
+setInterval(() => {
+  // 2s snapshot
+  const s = FG_PERF;
+  console.log(
+    "[FatGPT:perf/2s]",
+    "ensureStyle:",
+    s.ensureStyleCalls,
+    "computeCaps:",
+    s.computeCapsCalls,
+    "writes:",
+    s.storageWrites,
+    "onChanged:",
+    s.storageOnChanged,
+    "msgCmd:",
+    s.messagesCmd,
+    "msgGetCap:",
+    s.messagesGetCap
+  );
+  // reset counters
+  FG_PERF.ensureStyleCalls = 0;
+  FG_PERF.computeCapsCalls = 0;
+  FG_PERF.storageWrites = 0;
+  FG_PERF.storageOnChanged = 0;
+  FG_PERF.messagesCmd = 0;
+  FG_PERF.messagesGetCap = 0;
+}, 2000);
+
 // Multi-browser support
 if (typeof browser === "undefined") {
   var browser = chrome;
@@ -59,6 +95,7 @@ function isEditable(el) {
 
 // Inject/replace our CSS, or remove it entirely in native mode
 function ensureStyle(px) {
+  FG_PERF.ensureStyleCalls++;
   const existing = document.getElementById(STYLE_ID);
   if (px == null) {
     if (existing) existing.remove();
@@ -152,6 +189,7 @@ function pickCapContainer() {
 
 // Compute outer + inner content width; use a "functional" inner cap with reserved UI gutter
 function computeCaps() {
+  FG_PERF.computeCapsCalls++;
   const el = pickCapContainer();
   const rectW = Math.floor(el.getBoundingClientRect().width || 0);
 
@@ -194,6 +232,7 @@ function refreshEffectiveCap() {
 // =====================
 
 async function setAndSave(pxOrNull) {
+  FG_PERF.storageWrites++;
   let n = null;
   if (pxOrNull == null) {
     n = null; // native mode
@@ -267,7 +306,11 @@ window.addEventListener("keydown", (e) => {
 
 // ===== accept browser-managed commands from bg.js =====
 browser.runtime.onMessage.addListener((msg) => {
-  if (!msg || msg.type !== "fatgpt:cmd") return;
+  FG_PERF.storageOnChanged++;
+  if (!msg || msg.type !== "fatgpt:cmd") {
+    FG_PERF.messagesCmd++;
+    return;
+  }
   invoke(msg.cmd); // "wider" | "narrower" | "native"
 });
 
@@ -288,6 +331,7 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "fatgpt:get-cap") {
     const { outerCapPx, innerCapPx, functionalCapPx } = computeCaps();
+    FG_PERF.messagesGetCap++;
     // Use callback style so it works with chrome.* and browser.* alike
     sendResponse({
       capPx: functionalCapPx, // popup slider max
