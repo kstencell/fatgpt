@@ -1,4 +1,5 @@
-// bg.js
+// bg.js — shared for Chrome MV3 (service worker) and Firefox MV2 (background script)
+/* global chrome, browser */
 const api = typeof browser !== "undefined" ? browser : chrome;
 
 api.commands.onCommand.addListener(async (command) => {
