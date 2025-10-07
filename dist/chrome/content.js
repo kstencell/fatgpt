@@ -94,19 +94,28 @@ function isEditable(el) {
 }
 
 // Inject/replace our CSS, or remove it entirely in native mode
+let _lastStylePx = null; // cache last applied width
+
 function ensureStyle(px) {
   FG_PERF.ensureStyleCalls++;
+
+  // If no change, bail early.
+  if (px === _lastStylePx) return;
+  _lastStylePx = px;
+
   const existing = document.getElementById(STYLE_ID);
   if (px == null) {
     if (existing) existing.remove();
     return;
   }
+
   let el = existing;
   if (!el) {
     el = document.createElement("style");
     el.id = STYLE_ID;
     document.documentElement.appendChild(el);
   }
+
   el.textContent = cssFor(px);
 }
 
@@ -163,6 +172,10 @@ browser.storage.onChanged.addListener((changes, area) => {
 
   if ("chatMaxWidthPx" in changes) {
     const v = changes.chatMaxWidthPx.newValue;
+
+    // ⬇️ if it matches our current value, skip redundant work
+    if ((v == null && currentWidth == null) || v === currentWidth) return;
+
     if (v == null) {
       currentWidth = null;
       ensureStyle(null);
@@ -232,42 +245,77 @@ function refreshEffectiveCap() {
 // =====================
 
 async function setAndSave(pxOrNull) {
-  FG_PERF.storageWrites++;
   let n = null;
   if (pxOrNull == null) {
-    n = null; // native mode
+    n = null;
   } else {
     const cap = effectiveCapPx ?? computeCaps().functionalCapPx;
     n = Math.min(cap, Math.max(MIN_PX, Number(pxOrNull) || DEFAULT_PX));
   }
-  await browser.storage.local.set({ chatMaxWidthPx: n });
+
+  // ⬇️ no-op if the value didn't change (prevents extra ensureStyle + storage write)
+  if (n === currentWidth) return;
+
+  FG_PERF.storageWrites++; // counts only real writes now
   currentWidth = n;
   ensureStyle(n);
+  await browser.storage.local.set({ chatMaxWidthPx: n });
 }
 
 // =====================
-// DOM churn + SPA nav
+// size observing (container only) — replaces MutationObserver
 // =====================
 
-function watchForDomChurn() {
-  const mo = new MutationObserver(() => {
+let _ro = null;
+let _observedEl = null;
+
+function observeContainerSize() {
+  const el = pickCapContainer();
+  if (!el) return;
+
+  // If we're already observing this element, do nothing.
+  if (_observedEl === el && _ro) return;
+
+  // Switch target if needed
+  try {
+    _ro && _ro.disconnect();
+  } catch {}
+  _ro = new ResizeObserver(() => {
+    // run lightweight: recompute caps and re-apply current width
     refreshEffectiveCap();
     ensureStyle(currentWidth);
   });
-  mo.observe(document.documentElement, { childList: true, subtree: true });
+  _ro.observe(el);
+  _observedEl = el;
+}
 
+function hookSpaNav() {
+  // Re-evaluate container after SPA route changes
   const _pushState = history.pushState;
   history.pushState = function () {
     const r = _pushState.apply(this, arguments);
-    refreshEffectiveCap();
-    ensureStyle(currentWidth);
+    // next tick: container may have been swapped
+    queueMicrotask(() => {
+      observeContainerSize();
+      refreshEffectiveCap();
+      ensureStyle(currentWidth);
+    });
     return r;
   };
-  window.addEventListener("popstate", () => {
-    refreshEffectiveCap();
-    ensureStyle(currentWidth);
-  });
+  window.addEventListener(
+    "popstate",
+    () => {
+      observeContainerSize();
+      refreshEffectiveCap();
+      ensureStyle(currentWidth);
+    },
+    { passive: true }
+  );
 }
+
+// call once on load, keep existing window resize handler you already have
+observeContainerSize();
+hookSpaNav();
 
 refreshEffectiveCap();
 window.addEventListener("resize", refreshEffectiveCap);
@@ -347,4 +395,8 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // =====================
 // boot
 // =====================
-Promise.all([applyFromStorage(), loadBindings()]).then(watchForDomChurn);
+Promise.all([applyFromStorage(), loadBindings()]).then(() => {
+  observeContainerSize();
+  hookSpaNav();
+  refreshEffectiveCap();
+});
