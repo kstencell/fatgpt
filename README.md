@@ -24,6 +24,12 @@ The extension maintains separate manifest files for different browsers:
 
 ### Build Commands
 
+Build for all supported browsers:
+
+```bash
+npm run build
+```
+
 Build for specific browsers:
 
 ```bash

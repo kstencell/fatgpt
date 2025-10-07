@@ -3,27 +3,10 @@
   "name": "FatGPT — Chat Width Control",
   "version": "0.1.0",
   "description": "Widen or narrow the ChatGPT conversation column with a slider or keyboard shortcuts.",
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage"],
   "host_permissions": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
 
   "action": { "default_popup": "popup.html", "default_title": "FatGPT" },
-
-  "background": { "service_worker": "bg.js" },
-
-  "commands": {
-    "fatgpt-wider": {
-      "suggested_key": { "default": "Alt+Period" },
-      "description": "Widen width"
-    },
-    "fatgpt-narrower": {
-      "suggested_key": { "default": "Alt+Comma" },
-      "description": "Narrow width"
-    },
-    "fatgpt-native": {
-      "suggested_key": { "default": "Alt+0" },
-      "description": "Reset to native"
-    }
-  },
 
   "content_scripts": [
     {
