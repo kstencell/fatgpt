@@ -44,7 +44,7 @@
     "16": "icons/favicon-16x16.png",
     "32": "icons/favicon-32x32.png",
     "60": "icons/favicon-60x60.png",
-    "128": "icons/favicon-128x128.png"
+    "120": "icons/favicon-120x120.png"
   },
 
   "browser_specific_settings": {
