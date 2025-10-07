@@ -19,19 +19,13 @@ let effectiveOuterCapPx = null; // debug/info only
 
 // ---- user-shortcut bindings (layout-agnostic via KeyboardEvent.code) ----
 const DEFAULT_BINDINGS = {
-  wider: {
-    alt: true,
-    ctrl: false,
-    meta: false,
-    shift: false,
-    code: "BracketRight",
-  },
+  wider: { alt: true, ctrl: false, meta: false, shift: false, code: "Period" },
   narrower: {
     alt: true,
     ctrl: false,
     meta: false,
     shift: false,
-    code: "BracketLeft",
+    code: "Comma",
   },
   native: { alt: true, ctrl: false, meta: false, shift: false, code: "Digit0" },
 };

@@ -25,19 +25,13 @@ let capturing = null; // "wider" | "narrower" | "native" | null
 
 // Single source of truth for default chords (KeyboardEvent.code)
 const DEFAULT_BINDINGS = {
-  wider: {
-    alt: true,
-    ctrl: false,
-    meta: false,
-    shift: false,
-    code: "BracketRight",
-  },
+  wider: { alt: true, ctrl: false, meta: false, shift: false, code: "Period" },
   narrower: {
     alt: true,
     ctrl: false,
     meta: false,
     shift: false,
-    code: "BracketLeft",
+    code: "Comma",
   },
   native: { alt: true, ctrl: false, meta: false, shift: false, code: "Digit0" },
 };
@@ -99,6 +93,8 @@ function bindingToText(b) {
     Minus: "-",
     Equal: "=",
     Backquote: "`",
+    Period: ".",
+    Comma: ",",
   };
   if (codeMap[code]) key = codeMap[code];
   else if (/^Digit([0-9])$/.test(code)) key = code.match(/^Digit([0-9])$/)[1];

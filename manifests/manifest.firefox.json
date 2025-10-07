@@ -19,17 +19,11 @@
 
   "commands": {
     "fatgpt-wider": {
-      "suggested_key": {
-        "default": "Alt+BracketRight",
-        "mac": "Alt+BracketRight"
-      },
+      "suggested_key": { "default": "Alt+Period", "mac": "Alt+Period" },
       "description": "Widen width"
     },
     "fatgpt-narrower": {
-      "suggested_key": {
-        "default": "Alt+BracketLeft",
-        "mac": "Alt+BracketLeft"
-      },
+      "suggested_key": { "default": "Alt+Comma", "mac": "Alt+Comma" },
       "description": "Narrow width"
     },
     "fatgpt-native": {

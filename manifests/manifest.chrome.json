@@ -12,11 +12,11 @@
 
   "commands": {
     "fatgpt-wider": {
-      "suggested_key": { "default": "Alt+BracketRight" },
+      "suggested_key": { "default": "Alt+Period" },
       "description": "Widen width"
     },
     "fatgpt-narrower": {
-      "suggested_key": { "default": "Alt+BracketLeft" },
+      "suggested_key": { "default": "Alt+Comma" },
       "description": "Narrow width"
     },
     "fatgpt-native": {
