@@ -13,13 +13,12 @@ const modeEl = document.getElementById("mode");
 const btnW = document.getElementById("bind-wider");
 const btnN = document.getElementById("bind-narrower");
 const btnR = document.getElementById("bind-native");
-const btnM = document.getElementById("bind-maxwidth");
 const resetShortcutsBtn = document.getElementById("reset-shortcuts");
 
 // ---- Constants / state ----
 const DEFAULT_PX = 768;
 const MIN_PX = 600;
-let capPx = 5000; // tightened by the content script
+let capPx = 5000; // tightened by content script reply
 let bindingsCache = null;
 const CAPTURE_TIMEOUT_MS = 6000;
 let capturing = null; // "wider" | "narrower" | "native" | null
@@ -35,7 +34,6 @@ const DEFAULT_BINDINGS = {
     code: "Comma",
   },
   native: { alt: true, ctrl: false, meta: false, shift: false, code: "Digit0" },
-  maxWidth: { alt: true, ctrl: false, meta: false, shift: false, code: "KeyM" },
 };
 
 // =========================
@@ -75,21 +73,17 @@ function bindingsEqual(a, b) {
   );
 }
 
-// Pretty-print a binding for button labels
 const IS_MAC = navigator.platform.toUpperCase().includes("MAC");
 
 function bindingToText(b) {
   if (!b) return "Not set";
-
   const parts = [];
-  if (b.ctrl) parts.push(IS_MAC ? "Ctrl" : "Ctrl");
+  if (b.ctrl) parts.push("Ctrl");
   if (b.meta) parts.push(IS_MAC ? "Cmd" : "Win");
   if (b.alt) parts.push(IS_MAC ? "Option" : "Alt");
   if (b.shift) parts.push("Shift");
 
-  const code = b.code || "";
-  let key = code;
-  const codeMap = {
+  const map = {
     BracketLeft: "[",
     BracketRight: "]",
     Minus: "-",
@@ -98,10 +92,11 @@ function bindingToText(b) {
     Period: ".",
     Comma: ",",
   };
-  if (codeMap[code]) key = codeMap[code];
-  else if (/^Digit([0-9])$/.test(code)) key = code.match(/^Digit([0-9])$/)[1];
-  else if (/^Key([A-Z])$/.test(code)) key = code.match(/^Key([A-Z])$/)[1];
-  else if (code.startsWith("Numpad")) key = code.replace("Numpad", "Num ");
+  let key = map[b.code] || b.code;
+  let m;
+  if ((m = /^Digit(\d)$/.exec(b.code))) key = m[1];
+  else if ((m = /^Key([A-Z])$/.exec(b.code))) key = m[1];
+  else if (b.code.startsWith("Numpad")) key = b.code.replace("Numpad", "Num ");
 
   parts.push(key);
   return parts.join(" + ");
@@ -115,7 +110,6 @@ function refreshAllLabels() {
   setButtonLabel(btnW, bindingsCache.wider);
   setButtonLabel(btnN, bindingsCache.narrower);
   setButtonLabel(btnR, bindingsCache.native);
-  setButtonLabel(btnM, bindingsCache.maxWidth);
 }
 
 // =========================
@@ -133,11 +127,13 @@ function makeFocusTrap() {
   const el = document.createElement("input");
   el.type = "text";
   el.setAttribute("aria-hidden", "true");
-  el.style.position = "fixed";
-  el.style.opacity = "0";
-  el.style.pointerEvents = "none";
-  el.style.width = "1px";
-  el.style.height = "1px";
+  Object.assign(el.style, {
+    position: "fixed",
+    opacity: "0",
+    pointerEvents: "none",
+    width: "1px",
+    height: "1px",
+  });
   document.body.appendChild(el);
   setTimeout(() => {
     el.focus({ preventScroll: true });
@@ -149,26 +145,20 @@ function makeFocusTrap() {
 }
 
 function startCapture(which, btnEl) {
-  if (capturing) return; // ignore if another capture is in flight
-
+  if (capturing) return;
   capturing = which;
+
   const original = btnEl.textContent;
   btnEl.dataset.original = original;
   btnEl.textContent = "Press keys…";
   btnEl.setAttribute("aria-pressed", "true");
 
   const trap = makeFocusTrap();
-  let timeoutId;
-
   const onKey = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (e.key === "Escape") {
-      endCapture(false);
-      return;
-    }
-    if (isModifierCode(e.code)) return; // wait for a real key
+    if (e.key === "Escape") return endCapture(false);
+    if (isModifierCode(e.code)) return;
 
     const newBind = {
       alt: e.altKey,
@@ -178,63 +168,55 @@ function startCapture(which, btnEl) {
       code: e.code,
     };
 
-    // Ensure uniqueness: clear any other action that already uses this chord
-    for (const k of ["wider", "narrower", "native", "maxWidth"]) {
+    // Ensure uniqueness
+    for (const k of ["wider", "narrower", "native"]) {
       if (k !== which && bindingsEqual(bindingsCache[k], newBind)) {
-        bindingsCache[k] = null; // "Not set"
+        bindingsCache[k] = null;
       }
     }
 
-    // Save the new binding for this action
     bindingsCache[which] = newBind;
     await browser.storage.local.set({ fatgptBindings: bindingsCache });
-
     refreshAllLabels();
     endCapture(true);
   };
 
-  function endCapture(committed) {
+  const endCapture = (committed) => {
     if (!capturing) return;
     capturing = null;
-    clearTimeout(timeoutId);
     window.removeEventListener("keydown", onKey, true);
     trap.remove();
     btnEl.removeAttribute("aria-pressed");
-    if (!committed) {
-      btnEl.textContent = btnEl.dataset.original || original;
-    }
+    if (!committed) btnEl.textContent = btnEl.dataset.original || original;
     delete btnEl.dataset.original;
-  }
+  };
 
-  window.addEventListener("keydown", onKey, true);
-  timeoutId = setTimeout(() => endCapture(false), CAPTURE_TIMEOUT_MS);
+  // auto-timeout
+  const timeoutId = setTimeout(() => endCapture(false), CAPTURE_TIMEOUT_MS);
+  const _onKey = (e) => {
+    clearTimeout(timeoutId);
+    onKey(e);
+  };
+  window.addEventListener("keydown", _onKey, true);
 }
 
-// Use pointerdown + preventDefault to avoid synthesized keyboard activation
+// Use pointerdown to avoid click synthesizing key events
 btnW.addEventListener("pointerdown", (e) => {
   e.preventDefault();
-  e.stopPropagation();
   startCapture("wider", btnW);
 });
 btnN.addEventListener("pointerdown", (e) => {
   e.preventDefault();
-  e.stopPropagation();
   startCapture("narrower", btnN);
 });
 btnR.addEventListener("pointerdown", (e) => {
   e.preventDefault();
-  e.stopPropagation();
   startCapture("native", btnR);
-});
-btnM.addEventListener("pointerdown", (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  startCapture("maxWidth", btnM);
 });
 
 // Reset all bindings to defaults
 resetShortcutsBtn?.addEventListener("click", async () => {
-  if (capturing) return; // ignore while capturing
+  if (capturing) return;
   bindingsCache = { ...DEFAULT_BINDINGS };
   await browser.storage.local.set({ fatgptBindings: bindingsCache });
   refreshAllLabels();
@@ -244,38 +226,47 @@ resetShortcutsBtn?.addEventListener("click", async () => {
 // Width state (query + save)
 // =========================
 
+// Probe-only: don’t read tab.url. If content script replies, we’re on ChatGPT.
+function setDisabledUI(disabled) {
+  const controls = document.getElementById("controls");
+  const msg = document.getElementById("notChatgpt");
+  controls.style.display = disabled ? "none" : "";
+  msg.style.display = disabled ? "" : "none";
+}
+
 async function queryActiveTabCap() {
   try {
     const [tab] = await browser.tabs.query({
       active: true,
       currentWindow: true,
     });
-    if (!tab?.id) return;
+    if (!tab?.id) throw new Error("No active tab");
 
     const resp = await browser.tabs.sendMessage(tab.id, {
       type: "fatgpt:get-cap",
     });
-    if (resp?.capPx) {
-      capPx = Math.max(MIN_PX, Math.floor(resp.capPx));
-      slider.max = String(capPx);
-      capEl.textContent = capPx.toString();
-      setMode(resp.native);
+    if (!resp) throw new Error("No response");
 
-      if (resp.native) {
-        setBoth(Math.min(DEFAULT_PX, capPx));
-      } else if (resp.currentWidth != null) {
-        setBoth(Math.min(resp.currentWidth, capPx));
-      }
-    }
+    setDisabledUI(false);
+    capPx = Math.max(MIN_PX, Math.floor(resp.capPx || 5000));
+    slider.max = String(capPx);
+    capEl.textContent = String(capPx);
+    setMode(resp.native);
+    if (resp.native) setBoth(Math.min(DEFAULT_PX, capPx));
+    else if (resp.currentWidth != null)
+      setBoth(Math.min(resp.currentWidth, capPx));
+    return resp;
   } catch {
+    // Not ChatGPT / no content script
+    setDisabledUI(true);
     capEl.textContent = "—";
-    setMode(false);
+    modeEl.textContent = "—";
+    return null;
   }
 }
 
 async function load() {
   await queryActiveTabCap();
-
   const { chatMaxWidthPx } = await browser.storage.local.get("chatMaxWidthPx");
   if (chatMaxWidthPx == null) {
     setBoth(Math.min(DEFAULT_PX, capPx));
@@ -304,7 +295,6 @@ widthPx.addEventListener("input", (e) => {
 widthPx.addEventListener("change", (e) => {
   void save(e.target.value);
 });
-
 slider.addEventListener("input", (e) => {
   widthPx.value = e.target.value;
 });
@@ -318,66 +308,6 @@ resetBtn.addEventListener("click", async () => {
   setBoth(Math.min(DEFAULT_PX, capPx));
   setMode(true);
 });
-
-function isChatgptUrl(url) {
-  return /^https:\/\/(chatgpt\.com|chat\.openai\.com)\//.test(url || "");
-}
-function setDisabledUI(disabled) {
-  const controls = document.getElementById("controls");
-  const msg = document.getElementById("notChatgpt");
-  controls.style.display = disabled ? "none" : "";
-  msg.style.display = disabled ? "" : "none";
-}
-
-// modify queryActiveTabCap() to gate on URL
-async function queryActiveTabCap() {
-  try {
-    const [tab] = await browser.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    if (!tab?.id || !isChatgptUrl(tab.url)) {
-      // Not a ChatGPT tab: show disabled message and bail.
-      setDisabledUI(true);
-      capEl.textContent = "—";
-      modeEl.textContent = "—";
-      return null;
-    }
-
-    setDisabledUI(false);
-    const resp = await browser.tabs.sendMessage(tab.id, {
-      type: "fatgpt:get-cap",
-    });
-    if (resp?.capPx) {
-      capPx = Math.max(MIN_PX, Math.floor(resp.capPx));
-      slider.max = String(capPx);
-      capEl.textContent = String(capPx);
-      setMode(resp.native);
-      if (resp.native) setBoth(Math.min(DEFAULT_PX, capPx));
-      else if (resp.currentWidth != null)
-        setBoth(Math.min(resp.currentWidth, capPx));
-    }
-    return resp;
-  } catch {
-    // No content script / different site: disable UI
-    setDisabledUI(true);
-    capEl.textContent = "—";
-    modeEl.textContent = "—";
-    return null;
-  }
-}
-
-document
-  .getElementById("reset-shortcuts")
-  .addEventListener("click", async () => {
-    await browser.storage.local.set({ fatgptBindings: {} });
-    bindings = { ...DEFAULT_BINDINGS }; // optional local sync
-    // refresh UI labels
-    document.getElementById("bind-wider").textContent = "Alt + .";
-    document.getElementById("bind-narrower").textContent = "Alt + ,";
-    document.getElementById("bind-native").textContent = "Alt + 0";
-    document.getElementById("bind-maxwidth").textContent = "Alt + M";
-  });
 
 // =========================
 // Boot

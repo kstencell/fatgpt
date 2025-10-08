@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "FatGPT — ChatGPT Width Control",
   "short_name": "FatGPT",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Widen or narrow the ChatGPT conversation column with a slider or keyboard shortcuts.",
   "author": "Karl Stencell",
   "homepage_url": "https://github.com/kstencell/fatgpt",
