@@ -5,78 +5,98 @@
     <title>FatGPT</title>
     <style>
       :root {
-        --bg: #0b0f19; /* deep slate */
-        --panel: #111318; /* card */
-        --border: #1f2430; /* subtle border */
-        --text: #e5e7eb; /* slate-200 */
-        --muted: #9ca3af; /* slate-400 */
-        --accent: #10a37f; /* OpenAI green-ish */
-        --accent-2: #16bd8b; /* hover accent */
+        --bg: #212121;
+        --border: #9ca3af;
+        --text: #e5e7eb;
+        --white: #fff;
+        --muted: #9ca3af;
+        --accent: #10a37f;
+        --accent-2: #16bd8b;
+
+        /* layout rhythm */
+        --popup-width: 600px;
+        --section-gap: 14px;
+        --section-pad: 10px;
       }
 
-      html,
-      body {
-        background: var(--bg);
-        color: var(--text);
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        /* max-width: 100%; */
       }
-      body {
-        font: 14px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-          "Helvetica Neue", Arial, "Noto Sans";
+
+      html {
+        min-width: var(--popup-width);
         margin: 0;
-        min-width: 280px;
-        padding: 10px;
+        padding: 12px;
+      }
+      body {
+        width: 100%;
+        margin: 0;
+        padding: 12px;
+        font: 15px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, "Noto Sans";
+        line-height: 1.45;
+        background: var(--bg);
+        color: var(--white);
       }
 
-      .card {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 12px;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+      .meta,
+      .section,
+      .footer,
+      .row,
+      label,
+      input,
+      .btn,
+      .kbd {
+        font-size: inherit;
+      }
+      .meta {
+        color: var(--muted);
+      }
+
+      .title {
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: 0.2px;
       }
 
       .top {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 10px;
-      }
-      .title {
-        font-weight: 700;
-        letter-spacing: 0.2px;
-      }
-      .meta {
-        font-size: 12px;
-        color: var(--muted);
+        gap: 8px;
+        margin-bottom: var(--section-gap);
       }
 
+      /* Flex row: label grows, input stays tight */
       .row {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 10px;
+        display: flex;
         align-items: center;
+        gap: 10px;
         margin-top: 6px;
       }
-      label {
+      .row label {
         color: var(--muted);
+        flex: 1 1 auto; /* take remaining space */
       }
 
       input[type="number"] {
         width: 96px;
         background: transparent;
-        color: var(--text);
+        color: var(--white);
         border: 1px solid var(--border);
         border-radius: 8px;
         padding: 6px 8px;
         outline: none;
+        flex: 0 0 auto;
       }
       input[type="number"]:focus {
         border-color: var(--accent);
-        /* If color-mix isn’t supported, this just no-ops. */
         box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
       }
 
-      /* Range styling */
       input[type="range"] {
         -webkit-appearance: none;
         appearance: none;
@@ -85,6 +105,7 @@
         background: linear-gradient(90deg, var(--accent), var(--accent-2));
         border-radius: 999px;
         outline: none;
+        display: block;
       }
       input[type="range"]::-webkit-slider-thumb,
       input[type="range"]::-moz-range-thumb {
@@ -103,15 +124,23 @@
         background: transparent;
       }
 
-      .btn {
-        margin-top: 10px;
+      #slider {
         width: 100%;
+      }
+
+      .btn {
+        width: 75%;
         border: 1px solid var(--border);
         background: transparent;
         color: var(--text);
         padding: 8px 10px;
+        margin-top: 10px;
         border-radius: 8px;
         cursor: pointer;
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto; /* center */
+        display: block;
       }
       .btn:hover {
         border-color: var(--accent);
@@ -119,17 +148,25 @@
           inset;
       }
 
-      .footer {
-        margin-top: 12px;
-        padding-top: 10px;
+      /* Flex section: vertical stack with spacing, handles long lines */
+      .section {
+        margin-top: var(--section-gap);
+        padding-top: var(--section-pad);
         border-top: 1px solid var(--border);
         color: var(--muted);
-        font-size: 12px;
-        display: grid;
-        gap: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
       }
 
-      /* “kbd” buttons for rebinding */
+      /* Shortcuts row as flex with wrap */
+      .shortcuts-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+      }
+
       .kbd {
         appearance: none;
         -webkit-appearance: none;
@@ -152,84 +189,75 @@
         outline-offset: 2px;
       }
 
-      /* Make width math predictable */
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
+      .footer {
+        text-align: center;
       }
-
-      /* Normalize popup width across browsers */
-      :root {
-        --popup-min: 500px;
-      } /* pick 300–340 to taste */
-      html,
-      body {
-        min-width: var(--popup-min);
+      .footer a {
+        color: #6cf;
+        text-decoration: none;
       }
-
-      /* Ensure the card fills the popup width cleanly */
-      body {
-        margin: 0;
-      }
-      .card {
-        width: 100%;
-      }
-
-      /* Make the slider truly full width inside the card */
-      #slider {
-        width: 100%;
+      .footer a:hover {
+        text-decoration: underline;
       }
     </style>
   </head>
-  <body>
-    <div class="card">
-      <div class="top">
-        <div class="title">FatGPT</div>
-        <div class="meta">
-          Cap: <span id="capPx">—</span> · Mode: <span id="mode">—</span>
-        </div>
-      </div>
 
-      <!-- shown only when on a ChatGPT tab -->
-      <div id="controls">
+  <body>
+    <div class="top">
+      <div class="title">FatGPT</div>
+      <div class="meta">
+        Cap: <span id="capPx">—</span> · Mode: <span id="mode">—</span>
+      </div>
+    </div>
+
+    <!-- shown only when on a ChatGPT tab -->
+    <div id="controls">
+      <!-- Size section -->
+      <div class="section" id="size">
         <div class="row">
-          <label for="widthPx">Max width (px)</label>
+          <label for="widthPx"><strong>Max width (px)</strong></label>
           <input id="widthPx" type="number" min="600" max="5000" step="10" />
         </div>
-        <input
-          id="slider"
-          type="range"
-          min="600"
-          max="5000"
-          step="10"
-          style="margin-top: 8px"
-        />
+
+        <input id="slider" type="range" min="600" max="5000" step="10" />
         <button id="reset" class="btn">
           Reset to native (remove override)
         </button>
+      </div>
 
-        <div class="footer">
-          <div><strong>Shortcuts</strong></div>
-          <div>
-            Wider: <button id="bind-wider" class="kbd">Alt + .</button> &nbsp;
-            Narrower:
-            <button id="bind-narrower" class="kbd">Alt + ,</button> &nbsp;
-            Native: <button id="bind-native" class="kbd">Alt + 0</button>
-          </div>
-          <div>Click a shortcut, then press new keys to set.</div>
+      <!-- Shortcuts section -->
+      <div class="section" id="shortcuts">
+        <div><strong>Shortcuts</strong></div>
+        <div class="shortcuts-row">
+          <span>Wider:</span>
+          <button id="bind-wider" class="kbd">Alt + .</button>
+          <span>Narrower:</span>
+          <button id="bind-narrower" class="kbd">Alt + ,</button>
+          <span>Reset:</span>
+          <button id="bind-native" class="kbd">Alt + 0</button>
         </div>
-        <button id="reset-shortcuts" class="btn" style="margin-top: 4px">
+        <div>Click a shortcut, then press new keys to set.</div>
+        <button id="reset-shortcuts" class="btn">
           Reset shortcuts to defaults
         </button>
       </div>
+    </div>
 
-      <!-- shown when NOT on a ChatGPT tab -->
-      <div
-        id="notChatgpt"
-        style="display: none; padding: 8px 0; color: var(--muted)"
-      >
-        Must be on a ChatGPT tab to use FatGPT.
+    <div
+      id="notChatgpt"
+      style="display: none; padding: 8px 0; color: var(--muted)"
+    >
+      Must be on a ChatGPT tab to use FatGPT.
+    </div>
+
+    <!-- Footer credits -->
+    <div class="footer section">
+      <div>Built by <strong>Karl Stencell</strong></div>
+      <div>If you find FatGPT useful, please consider supporting my work.</div>
+      <div>
+        <a href="https://buymeacoffee.com/karlstencell" target="_blank"
+          >☕ Buy me a coffee</a
+        >
       </div>
     </div>
 
