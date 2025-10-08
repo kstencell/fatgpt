@@ -13,6 +13,7 @@ const modeEl = document.getElementById("mode");
 const btnW = document.getElementById("bind-wider");
 const btnN = document.getElementById("bind-narrower");
 const btnR = document.getElementById("bind-native");
+const btnM = document.getElementById("bind-maxwidth");
 const resetShortcutsBtn = document.getElementById("reset-shortcuts");
 
 // ---- Constants / state ----
@@ -34,6 +35,7 @@ const DEFAULT_BINDINGS = {
     code: "Comma",
   },
   native: { alt: true, ctrl: false, meta: false, shift: false, code: "Digit0" },
+  maxWidth: { alt: true, ctrl: false, meta: false, shift: false, code: "KeyM" },
 };
 
 // =========================
@@ -113,6 +115,7 @@ function refreshAllLabels() {
   setButtonLabel(btnW, bindingsCache.wider);
   setButtonLabel(btnN, bindingsCache.narrower);
   setButtonLabel(btnR, bindingsCache.native);
+  setButtonLabel(btnM, bindingsCache.maxWidth);
 }
 
 // =========================
@@ -176,7 +179,7 @@ function startCapture(which, btnEl) {
     };
 
     // Ensure uniqueness: clear any other action that already uses this chord
-    for (const k of ["wider", "narrower", "native"]) {
+    for (const k of ["wider", "narrower", "native", "maxWidth"]) {
       if (k !== which && bindingsEqual(bindingsCache[k], newBind)) {
         bindingsCache[k] = null; // "Not set"
       }
@@ -222,6 +225,11 @@ btnR.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
   startCapture("native", btnR);
+});
+btnM.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  startCapture("maxWidth", btnM);
 });
 
 // Reset all bindings to defaults
@@ -368,6 +376,7 @@ document
     document.getElementById("bind-wider").textContent = "Alt + .";
     document.getElementById("bind-narrower").textContent = "Alt + ,";
     document.getElementById("bind-native").textContent = "Alt + 0";
+    document.getElementById("bind-maxwidth").textContent = "Alt + M";
   });
 
 // =========================

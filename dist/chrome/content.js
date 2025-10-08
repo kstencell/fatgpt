@@ -1,4 +1,4 @@
-// ---- PERF DEBUG ----
+// ---- PERF DEBUG ---- (disabled in production for Chrome performance)
 const FG_PERF = {
   ensureStyleCalls: 0,
   computeCapsCalls: 0,
@@ -7,32 +7,37 @@ const FG_PERF = {
   messagesCmd: 0,
   messagesGetCap: 0,
 };
-setInterval(() => {
-  // 2s snapshot
-  const s = FG_PERF;
-  console.log(
-    "[FatGPT:perf/2s]",
-    "ensureStyle:",
-    s.ensureStyleCalls,
-    "computeCaps:",
-    s.computeCapsCalls,
-    "writes:",
-    s.storageWrites,
-    "onChanged:",
-    s.storageOnChanged,
-    "msgCmd:",
-    s.messagesCmd,
-    "msgGetCap:",
-    s.messagesGetCap
-  );
-  // reset counters
-  FG_PERF.ensureStyleCalls = 0;
-  FG_PERF.computeCapsCalls = 0;
-  FG_PERF.storageWrites = 0;
-  FG_PERF.storageOnChanged = 0;
-  FG_PERF.messagesCmd = 0;
-  FG_PERF.messagesGetCap = 0;
-}, 2000);
+
+// Only enable detailed logging in development
+const DEBUG_MODE = false; // Set to true for debugging
+if (DEBUG_MODE) {
+  setInterval(() => {
+    // 2s snapshot
+    const s = FG_PERF;
+    console.log(
+      "[FatGPT:perf/2s]",
+      "ensureStyle:",
+      s.ensureStyleCalls,
+      "computeCaps:",
+      s.computeCapsCalls,
+      "writes:",
+      s.storageWrites,
+      "onChanged:",
+      s.storageOnChanged,
+      "msgCmd:",
+      s.messagesCmd,
+      "msgGetCap:",
+      s.messagesGetCap
+    );
+    // reset counters
+    FG_PERF.ensureStyleCalls = 0;
+    FG_PERF.computeCapsCalls = 0;
+    FG_PERF.storageWrites = 0;
+    FG_PERF.storageOnChanged = 0;
+    FG_PERF.messagesCmd = 0;
+    FG_PERF.messagesGetCap = 0;
+  }, 2000);
+}
 
 // Multi-browser support
 if (typeof browser === "undefined") {
@@ -64,6 +69,7 @@ const DEFAULT_BINDINGS = {
     code: "Comma",
   },
   native: { alt: true, ctrl: false, meta: false, shift: false, code: "Digit0" },
+  maxWidth: { alt: true, ctrl: false, meta: false, shift: false, code: "KeyM" },
 };
 let bindings = { ...DEFAULT_BINDINGS };
 
@@ -95,28 +101,34 @@ function isEditable(el) {
 
 // Inject/replace our CSS, or remove it entirely in native mode
 let _lastStylePx = null; // cache last applied width
+let _styleUpdateTimeout = null;
 
 function ensureStyle(px) {
-  FG_PERF.ensureStyleCalls++;
+  if (DEBUG_MODE) FG_PERF.ensureStyleCalls++;
 
   // If no change, bail early.
   if (px === _lastStylePx) return;
-  _lastStylePx = px;
 
-  const existing = document.getElementById(STYLE_ID);
-  if (px == null) {
-    if (existing) existing.remove();
-    return;
-  }
+  // For rapid successive calls, debounce style updates
+  clearTimeout(_styleUpdateTimeout);
+  _styleUpdateTimeout = setTimeout(() => {
+    _lastStylePx = px;
 
-  let el = existing;
-  if (!el) {
-    el = document.createElement("style");
-    el.id = STYLE_ID;
-    document.documentElement.appendChild(el);
-  }
+    const existing = document.getElementById(STYLE_ID);
+    if (px == null) {
+      if (existing) existing.remove();
+      return;
+    }
 
-  el.textContent = cssFor(px);
+    let el = existing;
+    if (!el) {
+      el = document.createElement("style");
+      el.id = STYLE_ID;
+      document.documentElement.appendChild(el);
+    }
+
+    el.textContent = cssFor(px);
+  }, 16); // ~60fps throttling
 }
 
 const cssFor = (px) => `
@@ -159,37 +171,47 @@ async function loadBindings() {
   bindings = { ...DEFAULT_BINDINGS, ...(fatgptBindings || {}) };
 }
 
-// React to changes from popup/other tabs
+// React to changes from popup/other tabs (with debouncing for Chrome performance)
+let _storageChangeTimeout = null;
+
 browser.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
 
-  if (changes.fatgptBindings) {
-    bindings = {
-      ...DEFAULT_BINDINGS,
-      ...(changes.fatgptBindings.newValue || {}),
-    };
-  }
-
-  if ("chatMaxWidthPx" in changes) {
-    const v = changes.chatMaxWidthPx.newValue;
-
-    // ⬇️ if it matches our current value, skip redundant work
-    if ((v == null && currentWidth == null) || v === currentWidth) return;
-
-    if (v == null) {
-      currentWidth = null;
-      ensureStyle(null);
-    } else {
-      const cap = effectiveCapPx ?? computeCaps().functionalCapPx;
-      currentWidth = Math.min(cap, Math.max(MIN_PX, Number(v) || DEFAULT_PX));
-      ensureStyle(currentWidth);
+  // Debounce rapid storage changes
+  clearTimeout(_storageChangeTimeout);
+  _storageChangeTimeout = setTimeout(() => {
+    if (changes.fatgptBindings) {
+      bindings = {
+        ...DEFAULT_BINDINGS,
+        ...(changes.fatgptBindings.newValue || {}),
+      };
     }
-  }
+
+    if ("chatMaxWidthPx" in changes) {
+      const v = changes.chatMaxWidthPx.newValue;
+
+      // ⬇️ if it matches our current value, skip redundant work
+      if ((v == null && currentWidth == null) || v === currentWidth) return;
+
+      if (v == null) {
+        currentWidth = null;
+        ensureStyle(null);
+      } else {
+        const cap = effectiveCapPx ?? computeCaps().functionalCapPx;
+        currentWidth = Math.min(cap, Math.max(MIN_PX, Number(v) || DEFAULT_PX));
+        ensureStyle(currentWidth);
+      }
+    }
+  }, 50); // 50ms debounce for storage changes
 });
 
 // =====================
-// cap computation
+// cap computation (with caching for performance)
 // =====================
+
+let _cachedCaps = null;
+let _lastCapComputeTime = 0;
+const CAP_CACHE_DURATION = 100; // Cache for 100ms
 
 function pickCapContainer() {
   // Choose a full-width container, NOT a clamped column
@@ -202,7 +224,15 @@ function pickCapContainer() {
 
 // Compute outer + inner content width; use a "functional" inner cap with reserved UI gutter
 function computeCaps() {
-  FG_PERF.computeCapsCalls++;
+  const now = performance.now();
+
+  // Return cached result if recent
+  if (_cachedCaps && now - _lastCapComputeTime < CAP_CACHE_DURATION) {
+    return _cachedCaps;
+  }
+
+  if (DEBUG_MODE) FG_PERF.computeCapsCalls++;
+
   const el = pickCapContainer();
   const rectW = Math.floor(el.getBoundingClientRect().width || 0);
 
@@ -220,10 +250,16 @@ function computeCaps() {
     Math.min(innerCapPx - RESERVED_UI_PX, outerCapPx)
   );
 
-  return { outerCapPx, innerCapPx, functionalCapPx };
+  _cachedCaps = { outerCapPx, innerCapPx, functionalCapPx };
+  _lastCapComputeTime = now;
+
+  return _cachedCaps;
 }
 
 function refreshEffectiveCap() {
+  // Invalidate cache since window size changed
+  _cachedCaps = null;
+
   const { outerCapPx, functionalCapPx } = computeCaps();
   effectiveOuterCapPx = outerCapPx;
   const newCap = functionalCapPx;
@@ -235,7 +271,12 @@ function refreshEffectiveCap() {
     if (currentWidth != null && currentWidth > effectiveCapPx + EPS) {
       currentWidth = effectiveCapPx;
       ensureStyle(currentWidth);
-      browser.storage.local.set({ chatMaxWidthPx: currentWidth });
+
+      // Debounce storage write for resize events
+      clearTimeout(_saveTimeout);
+      _saveTimeout = setTimeout(async () => {
+        await browser.storage.local.set({ chatMaxWidthPx: currentWidth });
+      }, 300);
     }
   }
 }
@@ -322,15 +363,45 @@ window.addEventListener("resize", refreshEffectiveCap);
 
 // ===== de-dupe + unified invoker =====
 let _lastInvokeAt = 0;
+let _saveTimeout = null;
+
 function invoke(cmd) {
   const now = performance.now();
   if (now - _lastInvokeAt < 60) return; // prevent double-fire (commands + keydown)
   _lastInvokeAt = now;
 
   const base = currentWidth == null ? DEFAULT_PX : currentWidth;
-  if (cmd === "wider") setAndSave(base + STEP_PX);
-  else if (cmd === "narrower") setAndSave(base - STEP_PX);
-  else if (cmd === "native") setAndSave(null);
+  if (cmd === "wider") setAndSaveDebounced(base + STEP_PX);
+  else if (cmd === "narrower") setAndSaveDebounced(base - STEP_PX);
+  else if (cmd === "native") setAndSaveDebounced(null);
+  else if (cmd === "maxWidth") {
+    const cap = effectiveCapPx ?? computeCaps().functionalCapPx;
+    setAndSaveDebounced(cap);
+  }
+}
+
+// Debounced version for rapid keypress sequences
+function setAndSaveDebounced(pxOrNull) {
+  let n = null;
+  if (pxOrNull == null) {
+    n = null;
+  } else {
+    const cap = effectiveCapPx ?? computeCaps().functionalCapPx;
+    n = Math.min(cap, Math.max(MIN_PX, Number(pxOrNull) || DEFAULT_PX));
+  }
+
+  // Immediate UI update
+  if (n !== currentWidth) {
+    currentWidth = n;
+    ensureStyle(n);
+  }
+
+  // Debounced storage save
+  clearTimeout(_saveTimeout);
+  _saveTimeout = setTimeout(async () => {
+    FG_PERF.storageWrites++;
+    await browser.storage.local.set({ chatMaxWidthPx: currentWidth });
+  }, 150); // 150ms debounce for rapid keypresses
 }
 
 // =====================
@@ -349,17 +420,20 @@ window.addEventListener("keydown", (e) => {
   } else if (sameBinding(e, bindings.native)) {
     e.preventDefault();
     invoke("native");
+  } else if (sameBinding(e, bindings.maxWidth)) {
+    e.preventDefault();
+    invoke("maxWidth");
   }
 });
 
 // ===== accept browser-managed commands from bg.js =====
 browser.runtime.onMessage.addListener((msg) => {
-  FG_PERF.storageOnChanged++;
+  if (DEBUG_MODE) FG_PERF.storageOnChanged++;
   if (!msg || msg.type !== "fatgpt:cmd") {
-    FG_PERF.messagesCmd++;
+    if (DEBUG_MODE) FG_PERF.messagesCmd++;
     return;
   }
-  invoke(msg.cmd); // "wider" | "narrower" | "native"
+  invoke(msg.cmd); // "wider" | "narrower" | "native" | "maxWidth"
 });
 
 // =====================
@@ -371,7 +445,7 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || !msg.type) return;
 
   if (msg.type === "fatgpt:cmd") {
-    // "wider" | "narrower" | "native"
+    // "wider" | "narrower" | "native" | "maxWidth"
     invoke(msg.cmd);
     // No response needed
     return;
@@ -379,7 +453,7 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "fatgpt:get-cap") {
     const { outerCapPx, innerCapPx, functionalCapPx } = computeCaps();
-    FG_PERF.messagesGetCap++;
+    if (DEBUG_MODE) FG_PERF.messagesGetCap++;
     // Use callback style so it works with chrome.* and browser.* alike
     sendResponse({
       capPx: functionalCapPx, // popup slider max

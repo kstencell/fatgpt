@@ -159,12 +159,22 @@
         gap: 10px;
       }
 
-      /* Shortcuts row as flex with wrap */
-      .shortcuts-row {
+      .shortcuts-col {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .shortcuts-col span {
+        display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 8px 12px;
+        align-self: center;
+        width: 35%;
+      }
+
+      .shortcut-instructions {
+        text-align: center;
       }
 
       .kbd {
@@ -228,15 +238,27 @@
       <!-- Shortcuts section -->
       <div class="section" id="shortcuts">
         <div><strong>Shortcuts</strong></div>
-        <div class="shortcuts-row">
-          <span>Wider:</span>
-          <button id="bind-wider" class="kbd">Alt + .</button>
-          <span>Narrower:</span>
-          <button id="bind-narrower" class="kbd">Alt + ,</button>
-          <span>Reset:</span>
-          <button id="bind-native" class="kbd">Alt + 0</button>
+        <div class="shortcuts-col">
+          <span>
+            <div>Wider:</div>
+            <button id="bind-wider" class="kbd">Alt + .</button>
+          </span>
+          <span>
+            <div>Narrower:</div>
+            <button id="bind-narrower" class="kbd">Alt + ,</button>
+          </span>
+          <span>
+            <div>Reset:</div>
+            <button id="bind-native" class="kbd">Alt + 0</button>
+          </span>
+          <span>
+            <div>Max width:</div>
+            <button id="bind-maxwidth" class="kbd">Alt + M</button>
+          </span>
         </div>
-        <div>Click a shortcut, then press new keys to set.</div>
+        <div class="shortcut-instructions">
+          Click a shortcut, then press new keys to set.
+        </div>
         <button id="reset-shortcuts" class="btn">
           Reset shortcuts to defaults
         </button>
