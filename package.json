@@ -1,4 +1,20 @@
 {
+  "name": "fatgpt",
+  "version": "1.0.0",
+  "description": "Browser extension to adjust ChatGPT conversation width for better reading experience",
+  "author": "Karl Stencell",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kstencell/fatgpt.git"
+  },
+  "keywords": [
+    "chatgpt",
+    "browser-extension",
+    "ui",
+    "openai",
+    "width-control"
+  ],
   "scripts": {
     "clean": "shx rm -rf dist",
     "build": "npm run clean && npm run build:chrome && npm run build:firefox",

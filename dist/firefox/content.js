@@ -1,44 +1,3 @@
-// ---- PERF DEBUG ---- (disabled in production for Chrome performance)
-const FG_PERF = {
-  ensureStyleCalls: 0,
-  computeCapsCalls: 0,
-  storageWrites: 0,
-  storageOnChanged: 0,
-  messagesCmd: 0,
-  messagesGetCap: 0,
-};
-
-// Only enable detailed logging in development
-const DEBUG_MODE = false; // Set to true for debugging
-if (DEBUG_MODE) {
-  setInterval(() => {
-    // 2s snapshot
-    const s = FG_PERF;
-    console.log(
-      "[FatGPT:perf/2s]",
-      "ensureStyle:",
-      s.ensureStyleCalls,
-      "computeCaps:",
-      s.computeCapsCalls,
-      "writes:",
-      s.storageWrites,
-      "onChanged:",
-      s.storageOnChanged,
-      "msgCmd:",
-      s.messagesCmd,
-      "msgGetCap:",
-      s.messagesGetCap
-    );
-    // reset counters
-    FG_PERF.ensureStyleCalls = 0;
-    FG_PERF.computeCapsCalls = 0;
-    FG_PERF.storageWrites = 0;
-    FG_PERF.storageOnChanged = 0;
-    FG_PERF.messagesCmd = 0;
-    FG_PERF.messagesGetCap = 0;
-  }, 2000);
-}
-
 // Multi-browser support
 if (typeof browser === "undefined") {
   var browser = chrome;
@@ -104,8 +63,6 @@ let _lastStylePx = null; // cache last applied width
 let _styleUpdateTimeout = null;
 
 function ensureStyle(px) {
-  if (DEBUG_MODE) FG_PERF.ensureStyleCalls++;
-
   // If no change, bail early.
   if (px === _lastStylePx) return;
 
@@ -231,8 +188,6 @@ function computeCaps() {
     return _cachedCaps;
   }
 
-  if (DEBUG_MODE) FG_PERF.computeCapsCalls++;
-
   const el = pickCapContainer();
   const rectW = Math.floor(el.getBoundingClientRect().width || 0);
 
@@ -297,7 +252,6 @@ async function setAndSave(pxOrNull) {
   // ⬇️ no-op if the value didn't change (prevents extra ensureStyle + storage write)
   if (n === currentWidth) return;
 
-  FG_PERF.storageWrites++; // counts only real writes now
   currentWidth = n;
   ensureStyle(n);
   await browser.storage.local.set({ chatMaxWidthPx: n });
@@ -399,7 +353,6 @@ function setAndSaveDebounced(pxOrNull) {
   // Debounced storage save
   clearTimeout(_saveTimeout);
   _saveTimeout = setTimeout(async () => {
-    FG_PERF.storageWrites++;
     await browser.storage.local.set({ chatMaxWidthPx: currentWidth });
   }, 150); // 150ms debounce for rapid keypresses
 }
@@ -428,9 +381,7 @@ window.addEventListener("keydown", (e) => {
 
 // ===== accept browser-managed commands from bg.js =====
 browser.runtime.onMessage.addListener((msg) => {
-  if (DEBUG_MODE) FG_PERF.storageOnChanged++;
   if (!msg || msg.type !== "fatgpt:cmd") {
-    if (DEBUG_MODE) FG_PERF.messagesCmd++;
     return;
   }
   invoke(msg.cmd); // "wider" | "narrower" | "native" | "maxWidth"
@@ -453,7 +404,6 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "fatgpt:get-cap") {
     const { outerCapPx, innerCapPx, functionalCapPx } = computeCaps();
-    if (DEBUG_MODE) FG_PERF.messagesGetCap++;
     // Use callback style so it works with chrome.* and browser.* alike
     sendResponse({
       capPx: functionalCapPx, // popup slider max

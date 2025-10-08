@@ -1,50 +1,51 @@
 # FatGPT
 
-A simple browser extension that allows you to adjust the conversation width in ChatGPT for a better reading experience.
+A browser extension that allows you to adjust the conversation width in ChatGPT for a better reading experience. Perfect for wide monitors or when you prefer narrower text columns.
 
-## Features
+## ✨ Features
 
-- 🖱️ **Click to adjust**: Use the popup to set your preferred conversation width
+- 🖱️ **Click to adjust**: Use the popup slider to set your preferred conversation width
 - ⌨️ **Keyboard shortcuts**:
   - `Alt + ]` to make conversations wider
   - `Alt + [` to make conversations narrower
+  - `Alt + 0` to reset to ChatGPT's default width
+  - `Alt + M` to maximize width
 - 💾 **Remembers your preference**: Saves your width setting across sessions
-- 🔄 **Easy reset**: Quickly return to ChatGPT's default width
+- 🔄 **Customizable shortcuts**: Configure your own keyboard shortcuts
+- 🌐 **Works everywhere**: Compatible with both `chatgpt.com` and `chat.openai.com`
 
-## Development
+## 📦 Installation
 
-This extension supports multiple browsers with dedicated build processes for each platform.
+### From Extension Stores (Recommended)
 
-### Project Structure
+**Chrome Web Store:**
 
-The extension maintains separate manifest files for different browsers:
+1. Visit the [FatGPT Chrome Extension](https://chrome.google.com/webstore) _(coming soon)_
+2. Click "Add to Chrome"
+3. The FatGPT icon will appear in your toolbar
 
-- `manifests/manifest.chrome.json` - Chrome/Chromium-based browsers
-- `manifests/manifest.firefox.json` - Firefox/Mozilla-based browsers
+**Firefox Add-ons:**
 
-### Build Commands
+1. Visit the [FatGPT Firefox Add-on](https://addons.mozilla.org) _(coming soon)_
+2. Click "Add to Firefox"
+3. The FatGPT icon will appear in your toolbar
 
-Build for all supported browsers:
+## 🚀 Usage
 
-```bash
-npm run build
-```
+1. **Click the FatGPT icon** in your browser toolbar to open the width adjustment popup
+2. **Use the slider** or input field to set your preferred conversation width
+3. **Or use keyboard shortcuts**:
+   - `Alt + ]` to make wider
+   - `Alt + [` to make narrower
+   - `Alt + 0` to reset to default
+   - `Alt + M` to maximize width
+4. **Customize shortcuts** in the popup settings if needed
 
-Build for specific browsers:
+Your preference is automatically saved and will persist across browser sessions.
 
-```bash
-npm run build:chrome   # Builds Chrome version to dist/chrome/
-npm run build:firefox  # Builds Firefox version to dist/firefox/
-```
+### Manual Installation (Development)
 
-Create distribution packages:
-
-```bash
-npm run zip:chrome     # Creates dist/fatgpt-chrome.zip
-npm run zip:firefox    # Creates dist/fatgpt-firefox.zip
-```
-
-## Installation for Local Development
+If you want to install the development version:
 
 ### Chrome
 
@@ -65,10 +66,54 @@ npm run zip:firefox    # Creates dist/fatgpt-firefox.zip
 6. Navigate to the `dist/firefox/` folder and select `manifest.json`
 7. The FatGPT icon will appear in your toolbar
 
-## Usage
+## 🤝 Contributing
 
-- Click the FatGPT icon in your browser toolbar to open the width adjustment popup
-- Use the slider or input field to set your preferred conversation width
-- Or use keyboard shortcuts: `Alt + ]` (wider) and `Alt + [` (narrower)
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
-Works on both `chatgpt.com` and `chat.openai.com`.
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🐛 Support & Issues
+
+If you encounter any issues or have feature requests:
+
+1. Check the [Issues](https://github.com/kstencell/fatgpt/issues) page
+2. Create a new issue if needed
+3. Provide clear details about your browser version and the problem
+
+## 🛠️ Development
+
+This extension supports multiple browsers with dedicated build processes for each platform.
+
+### Project Structure
+
+```
+fatgpt/
+├── content.js              # Main extension logic
+├── popup.html              # Extension popup interface
+├── popup.js                # Popup functionality
+├── package.json            # Build configuration
+├── manifests/
+│   ├── manifest.chrome.json
+│   └── manifest.firefox.json
+└── icons/                  # Extension icons
+```
+
+### Build Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Build for all browsers
+npm run build
+
+# Build for specific browsers
+npm run build:chrome   # → dist/chrome/
+npm run build:firefox  # → dist/firefox/
+
+# Create distribution packages
+npm run zip:chrome     # → dist/fatgpt-chrome.zip
+npm run zip:firefox    # → dist/fatgpt-firefox.zip
+```
