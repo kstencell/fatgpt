@@ -7,12 +7,7 @@
   "author": "Karl Stencell",
   "homepage_url": "https://github.com/kstencell/fatgpt",
 
-  "permissions": [
-    "storage",
-    "tabs",
-    "https://chatgpt.com/*",
-    "https://chat.openai.com/*"
-  ],
+  "permissions": ["storage"],
 
   "browser_action": {
     "default_popup": "popup.html",

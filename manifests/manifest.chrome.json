@@ -6,7 +6,7 @@
   "description": "Widen or narrow the ChatGPT conversation column with a slider or keyboard shortcuts.",
   "homepage_url": "https://github.com/kstencell/fatgpt",
 
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage"],
 
   "action": {
     "default_popup": "popup.html",
